@@ -19,8 +19,8 @@ resource "google_project_service" "iam" {
 }
 
 resource "google_service_account" "example" {
-  #account_id   = var.service_account_email
-  account_id   = "example-service-account"
+  account_id   = var.service_account_email
+  #account_id   = "example-service-account"
   display_name = "Example Service Account"
   #service = google_service_account.example.account_id
   #depends_on = [google_project_service.iam]
@@ -28,10 +28,12 @@ resource "google_service_account" "example" {
 
 resource "google_service_account_iam_binding" "binding" {
   service_account_id = google_service_account.example.name
-  role = "roles/run.admin"
+  role = "roles/editor"
+  #role = "roles/iam.serviceAccountAdmin"
   members = [
-    #"serviceAccount:${google_service_account.example.name}@playground-s-11-02b39fdb.iam.gserviceaccount.com",
-    "serviceAccount:example-service-account@playground-s-11-02b39fdb.iam.gserviceaccount.com"
+    #"serviceAccount:${google_service_account.example.name}@playground-s-11-b34d40ba.iam.gserviceaccount.com",
+    #"serviceAccount:example-service-account@playground-s-11-b34d40ba.iam.gserviceaccount.com"
+    "serviceAccount:${google_service_account.example.email}"
     ]
   depends_on = [google_service_account.example]
 }

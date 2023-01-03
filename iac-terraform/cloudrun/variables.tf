@@ -1,7 +1,7 @@
 
 variable "project_id" {
   type = string
-  default = "playground-s-11-02b39fdb"
+  default = "playground-s-11-b34d40ba"
 }
 
 variable "region" {
@@ -28,6 +28,6 @@ variable "lb_name" {
 variable "service_account_email" {
   description = "Service account email to run containers under"
   type        = string
-  default = "abc@playground-s-11-02b39fdb.iam.gserviceaccount.com"
+  default = "abcmnop001"
 }
 

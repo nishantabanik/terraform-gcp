@@ -20,6 +20,11 @@ resource "google_project_service" "clouddns" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "iam" {
+  service = "iam.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_dns_record_set" "a" {
   name         = "backend.${google_dns_managed_zone.prod.dns_name}"
   managed_zone = google_dns_managed_zone.prod.name
@@ -85,19 +90,47 @@ resource "google_compute_region_network_endpoint_group" "serverless_neg" {
   }
 }
 
-##########################################
-# deploy Cloud Run Service
-##########################################
+####################################################################
+# deploy Cloud Run Service with Service Account
+####################################################################
+
+resource "google_service_account" "example" {
+  account_id   = var.service_account_email
+  display_name = "Example Service Account"
+}
+
+resource "google_service_account_iam_binding" "binding" {
+  service_account_id = google_service_account.example.name
+  role = "roles/editor"
+  #role = "roles/iam.serviceAccountAdmin"
+  members = [
+    #"serviceAccount:${google_service_account.example.name}@playground-s-11-b34d40ba.iam.gserviceaccount.com",
+    #"serviceAccount:example-service-account@playground-s-11-b34d40ba.iam.gserviceaccount.com"
+    "serviceAccount:${google_service_account.example.email}"
+    ]
+  depends_on = [google_service_account.example]
+}
+
+resource "google_cloud_run_service_iam_member" "access-cloudrun" {
+  location = google_cloud_run_service.default.location
+  project  = google_cloud_run_service.default.project
+  service  = google_cloud_run_service.default.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+
 resource "google_cloud_run_service" "default" {
   name     = "example"
   location = var.region
   project  = var.project_id
-  google_service_account {
+  /* google_service_account {
     service = google_service_account.example.account_id
-  }
+  } */
 
   template {
     spec {
+      service_account_name = google_service_account.example.email
       containers {
         image = "gcr.io/cloudrun/hello"
         resources {
@@ -120,7 +153,7 @@ resource "google_cloud_run_service" "default" {
   depends_on = [google_project_service.cloudrun]
 }
 
-resource "google_service_account" "example" {
+/* resource "google_service_account" "example" {
   account_id   = "example-service-account"
   display_name = "Example Service Account"
 }
@@ -131,13 +164,5 @@ resource "google_cloud_run_service_iam_member" "public-access-123" {
   service  = google_cloud_run_service.default.name
   role     = "roles/run.invoker"
   member   = "allUsers"
-}
+} */
 # [END cloudloadbalancing_ext_http_cloudrun]
-
-output "load-balancer-ip" {
-  value = module.lb-http.external_ip
-}
-
-output "service_url" {
-  value = google_cloud_run_service.default.status[0].url
-}
