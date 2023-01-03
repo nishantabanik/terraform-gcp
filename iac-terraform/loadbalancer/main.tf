@@ -39,10 +39,7 @@ resource "google_dns_managed_zone" "prod" {
   dns_name = "prod.mydomain123.com."
   depends_on = [google_project_service.clouddns]
 }
-/*   # Waits for the Cloud Run API to be enabled
-  depends_on = [google_project_service.cloudrun] */
 
-# [START cloudloadbalancing_ext_http_cloudrun]
 module "lb-http" {
   source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
   version = "~> 6.3"
@@ -104,8 +101,6 @@ resource "google_service_account_iam_binding" "binding" {
   role = "roles/editor"
   #role = "roles/iam.serviceAccountAdmin"
   members = [
-    #"serviceAccount:${google_service_account.example.name}@playground-s-11-b34d40ba.iam.gserviceaccount.com",
-    #"serviceAccount:example-service-account@playground-s-11-b34d40ba.iam.gserviceaccount.com"
     "serviceAccount:${google_service_account.example.email}"
     ]
   depends_on = [google_service_account.example]
@@ -152,17 +147,3 @@ resource "google_cloud_run_service" "default" {
   # Waits for the Cloud Run API to be enabled
   depends_on = [google_project_service.cloudrun]
 }
-
-/* resource "google_service_account" "example" {
-  account_id   = "example-service-account"
-  display_name = "Example Service Account"
-}
-
-resource "google_cloud_run_service_iam_member" "public-access-123" {
-  location = google_cloud_run_service.default.location
-  project  = google_cloud_run_service.default.project
-  service  = google_cloud_run_service.default.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-} */
-# [END cloudloadbalancing_ext_http_cloudrun]
