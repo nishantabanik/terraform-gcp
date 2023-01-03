@@ -7,46 +7,18 @@ provider "google-beta" {
   project = var.project_id
 }
 
-/* provider "dns" {
-  update {
-    server        = "192.168.0.1"
-    key_name      = "example.com."
-    key_algorithm = "hmac-md5"
-    key_secret    = "3VwZXJzZWNyZXQ="
-  }
+# Enable Cloud Run API
+resource "google_project_service" "cloudrun" {
+  provider = google-beta
+  service            = "run.googleapis.com"
+  disable_on_destroy = false
 }
 
-module "dns-private-zone" {
-  source  = "terraform-google-modules/cloud-dns/google"
-  version = "3.0.0"
-  project_id = "playground-s-11-87f68f04"
-  type       = "private"
-  name       = "example-com"
-  domain     = "example.com."
-
-  private_visibility_config_networks = [
-    "https://www.googleapis.com/compute/v1/projects/playground-s-11-87f68f04/global/networks/my-vpc"
-  ]
-
-  recordsets = [
-    {
-      name    = ""
-      type    = "NS"
-      ttl     = 300
-      records = [
-        "127.0.0.1",
-      ]
-    },
-    {
-      name    = "localhost"
-      type    = "A"
-      ttl     = 300
-      records = [
-        "127.0.0.1",
-      ]
-    },
-  ]
-} */
+resource "google_project_service" "clouddns" {
+  provider = google-beta
+  service            = "dns.googleapis.com"
+  disable_on_destroy = false
+}
 
 resource "google_dns_record_set" "a" {
   name         = "backend.${google_dns_managed_zone.prod.dns_name}"
@@ -59,8 +31,11 @@ resource "google_dns_record_set" "a" {
 
 resource "google_dns_managed_zone" "prod" {
   name     = "prod-zone"
-  dns_name = "prod.mydomain.com."
+  dns_name = "prod.mydomain123.com."
+  depends_on = [google_project_service.clouddns]
 }
+/*   # Waits for the Cloud Run API to be enabled
+  depends_on = [google_project_service.cloudrun] */
 
 # [START cloudloadbalancing_ext_http_cloudrun]
 module "lb-http" {
@@ -117,11 +92,20 @@ resource "google_cloud_run_service" "default" {
   name     = "example"
   location = var.region
   project  = var.project_id
+  google_service_account {
+    service = google_service_account.example.account_id
+  }
 
   template {
     spec {
       containers {
         image = "gcr.io/cloudrun/hello"
+        resources {
+          limits = {
+            cpu    = "1000m"
+            memory = "256M"
+          }
+        }
       }
     }
   }
@@ -132,6 +116,13 @@ resource "google_cloud_run_service" "default" {
       "run.googleapis.com/ingress" = "all"
     }
   }
+  # Waits for the Cloud Run API to be enabled
+  depends_on = [google_project_service.cloudrun]
+}
+
+resource "google_service_account" "example" {
+  account_id   = "example-service-account"
+  display_name = "Example Service Account"
 }
 
 resource "google_cloud_run_service_iam_member" "public-access-123" {
@@ -142,3 +133,11 @@ resource "google_cloud_run_service_iam_member" "public-access-123" {
   member   = "allUsers"
 }
 # [END cloudloadbalancing_ext_http_cloudrun]
+
+output "load-balancer-ip" {
+  value = module.lb-http.external_ip
+}
+
+output "service_url" {
+  value = google_cloud_run_service.default.status[0].url
+}
