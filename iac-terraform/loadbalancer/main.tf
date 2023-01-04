@@ -10,13 +10,13 @@ provider "google-beta" {
 # Enable Cloud Run API
 resource "google_project_service" "cloudrun" {
   provider = google-beta
-  service            = "run.googleapis.com"
+  service  = "run.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_project_service" "clouddns" {
   provider = google-beta
-  service            = "dns.googleapis.com"
+  service  = "dns.googleapis.com"
   disable_on_destroy = false
 }
 

@@ -26,6 +26,14 @@ resource "google_cloudbuild_trigger" "build-prod" {
   service_account = var.service_account_email
 }
 
+
+
+
+
+
+
+
+
 /*   approval_config {
     approval_required = yes
   } */
