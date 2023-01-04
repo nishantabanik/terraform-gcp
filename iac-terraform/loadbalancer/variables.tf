@@ -1,12 +1,12 @@
 
 variable "project_id" {
   type = string
-  default = "playground-s-11-23c52e81"
+  default = "lgf-devops-sandbox"
 }
 
 variable "region" {
   description = "Location for load balancer and Cloud Run resources"
-  default     = "us-central1"
+  default     = "europe-west1"
 }
 
 variable "ssl" {

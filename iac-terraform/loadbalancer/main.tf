@@ -14,6 +14,12 @@ resource "google_project_service" "cloudrun" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "compute" {
+  provider = google-beta
+  service  = "compute.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "clouddns" {
   provider = google-beta
   service  = "dns.googleapis.com"
@@ -36,7 +42,7 @@ resource "google_dns_record_set" "a" {
 
 resource "google_dns_managed_zone" "prod" {
   name     = "prod-zone"
-  dns_name = "prod.mydomain123.com."
+  dns_name = "prod.mydomain1234.com."
   depends_on = [google_project_service.clouddns]
 }
 

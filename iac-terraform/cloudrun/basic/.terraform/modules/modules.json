@@ -1,1 +1,0 @@
-{"Modules":[{"Key":"cloud_run","Source":"../..","Dir":"../.."},{"Key":"service_account","Source":"registry.terraform.io/terraform-google-modules/service-accounts/google","Version":"4.1.1","Dir":".terraform/modules/service_account"},{"Key":"","Source":"","Dir":"."}]}
