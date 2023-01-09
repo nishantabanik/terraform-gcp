@@ -1,64 +1,38 @@
-
 resource "google_project_service" "cloudbuild_api" {
-  project  = var.project_id
-  service  = "cloudbuild.googleapis.com"
+  project                    = var.project_id
+  service                    = "cloudbuild.googleapis.com"
   disable_dependent_services = false
-  disable_on_destroy = false
+  disable_on_destroy         = false
 }
 
-resource "google_cloudbuild_trigger" "build-prod" {
-  location = var.region
-  project  = var.project_id
-  filename = "cloudbuild.yaml"
-  name        = "my-trigger"
-  description = "Trigger for building my application"
-  disabled    = false # Status is enabled by default
+resource "google_cloudbuild_trigger" "filename-trigger" {
+  location   = var.region
+  project    = var.project_id
+  name       = "manual-build"
+  disabled   = false # Status is enabled by default
+  filename   = "cloudbuild.yaml"
   depends_on = [google_project_service.cloudbuild_api]
+  source_to_build {
+    uri       = "https://github.com/nishantabanik/cloud-build-samples.git"
+    ref       = "refs/heads/main"
+    repo_type = "GITHUB"
+  }
+  approval_config {
+    approval_required = true
+  }
 
-  # Connect to GitHub and trigger on push to develop branch
 
   trigger_template {
-    repo_name   = "https://github.com/nishantabanik/cloud-build-samples.git"
     branch_name = "main"
+    repo_name   = var.repo_name
     dir         = "basic-config"
   }
 
-  service_account = var.service_account_email
-}
+  substitutions = {
+    _FOO              = "bar"
+    _BAZ              = "qux"
+    _CLOUD_RUN_ALIAS  = "prod-europe-landing-pages"
+    _CLOUD_RUN_REGION = "europe-west1"
+    _SERVICE_ACCOUNT = var.service_account_email
 
-
-
-
-
-
-
-
-
-/*   approval_config {
-    approval_required = yes
-  } */
-
-    # Optionally, toggle on/off manual approval
-  /* options {
-    substitution_option = "ALLOW_LOOSE"
-    disable_manual_triggers = false
-  } */
-
-  /* variable "gcp_service_list" {
-  description ="The list of apis necessary for the project"
-  type = list(string)
-  default = [
-    "cloudresourcemanager.googleapis.com",
-    "serviceusage.googleapis.com",
-    "dns.googleapis.com",
-    "iam.googleapis.com",
-    "run.googleapis.com",
-    "cloudbuild.googleapis.com"
-  ]
-}
-
-resource "google_project_service" "gcp_services" {
-  for_each = toset(var.gcp_service_list)
-  project = "playground-s-11-572e388d"
-  service = each.key
-} */
+  }
