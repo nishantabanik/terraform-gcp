@@ -12,6 +12,7 @@ resource "google_cloudbuild_trigger" "filename-trigger" {
   disabled   = false # Status is enabled by default
   filename   = "cloudbuild.yaml"
   depends_on = [google_project_service.cloudbuild_api]
+  
   source_to_build {
     uri       = "https://github.com/nishantabanik/cloud-build-samples.git"
     ref       = "refs/heads/main"
@@ -33,6 +34,8 @@ resource "google_cloudbuild_trigger" "filename-trigger" {
     _BAZ              = "qux"
     _CLOUD_RUN_ALIAS  = "prod-europe-landing-pages"
     _CLOUD_RUN_REGION = "europe-west1"
-    _SERVICE_ACCOUNT = var.service_account_email
-
+    #_SERVICE_ACCOUNT = var.service_account_email
   }
+  #service_account = var.service_account_email
+  service_account = google_service_account.cloudbuild_service_account.account_id
+}
