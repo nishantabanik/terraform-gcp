@@ -1,41 +1,44 @@
-resource "google_project_service" "cloudbuild_api" {
-  project                    = var.project_id
-  service                    = "cloudbuild.googleapis.com"
-  disable_dependent_services = false
-  disable_on_destroy         = false
+provider "google" {
+  project = var.project_id
+  credentials = "../tf-key.json"
 }
 
-resource "google_cloudbuild_trigger" "filename-trigger" {
-  location   = var.region
+data "google_project" "project" {}
+
+resource "google_cloudbuild_trigger" "service-account-trigger" {
   project    = var.project_id
+  location   = var.region
   name       = "manual-build"
   disabled   = false # Status is enabled by default
-  filename   = "cloudbuild.yaml"
-  depends_on = [google_project_service.cloudbuild_api]
   
   source_to_build {
-    uri       = "https://github.com/nishantabanik/cloud-build-samples.git"
+    uri       = var.repo_name
     ref       = "refs/heads/main"
     repo_type = "GITHUB"
   }
-  approval_config {
-    approval_required = true
-  }
-
-
+  
   trigger_template {
     branch_name = "main"
     repo_name   = var.repo_name
     dir         = "basic-config"
   }
 
+  approval_config {
+    approval_required == var.environment == "cloudbuild" ? true : false
+  }
+
   substitutions = {
     _FOO              = "bar"
     _BAZ              = "qux"
     _CLOUD_RUN_ALIAS  = "prod-europe-landing-pages"
-    _CLOUD_RUN_REGION = "europe-west1"
+    _CLOUD_RUN_REGION = var.region
     #_SERVICE_ACCOUNT = var.service_account_email
   }
-  #service_account = var.service_account_email
-  service_account = google_service_account.cloudbuild_service_account.account_id
+
+  service_account = google_service_account.cloudbuild_service_account.id
+  filename = "cloudbuild.yaml"
+  depends_on = [
+    google_project_iam_member.act_as,
+    google_project_iam_member.logs_writer
+  ]
 }
