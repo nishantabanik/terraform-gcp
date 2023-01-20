@@ -1,18 +1,16 @@
 
 variable "project_id" {
-  type = string
+  type    = string
   default = "lgf-devops-sandbox"
 }
 
 variable "region" {
-  description = "Location for load balancer and Cloud Run resources"
+  description = "Location for the Cloud Run instance"
   default     = "europe-west1"
 }
 
 variable "service_account_email" {
-  description = "Service account email to run containers under"
+  description = "Service account to run the Cloud Run instance"
   type        = string
-  default = "abcmnop001"
+  default     = "dev-cloudrun-sa"
 }
-
-
