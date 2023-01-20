@@ -1,62 +1,28 @@
 provider "google" {
-  project = var.project_id
+  project     = var.project_id
+  credentials = "../tf-key.json"
 }
 
-provider "google-beta" {
-  project = var.project_id
-}
 
 # Enable Cloud Run API
 resource "google_project_service" "cloudrun" {
-  provider = google-beta
-  service  = "run.googleapis.com"
+  provider           = google-beta
+  project            = var.project_id
+  service            = "run.googleapis.com"
   disable_on_destroy = false
 }
 
-resource "google_project_service" "iam" {
-  service = "iam.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_service_account" "example" {
-  account_id   = var.service_account_email
-  #account_id   = "example-service-account"
-  display_name = "Example Service Account"
-  #service = google_service_account.example.account_id
-  #depends_on = [google_project_service.iam]
-}
-
-resource "google_service_account_iam_binding" "binding" {
-  service_account_id = google_service_account.example.name
-  role = "roles/editor"
-  #role = "roles/iam.serviceAccountAdmin"
-  members = [
-    #"serviceAccount:${google_service_account.example.name}@playground-s-11-b34d40ba.iam.gserviceaccount.com",
-    #"serviceAccount:example-service-account@playground-s-11-b34d40ba.iam.gserviceaccount.com"
-    "serviceAccount:${google_service_account.example.email}"
-    ]
-  depends_on = [google_service_account.example]
-}
-
-resource "google_cloud_run_service_iam_member" "access-cloudrun" {
-  location = google_cloud_run_service.default.location
-  project  = google_cloud_run_service.default.project
-  service  = google_cloud_run_service.default.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
 
 ##########################################
 # deploy Cloud Run Service
 ##########################################
-resource "google_cloud_run_service" "default" {
+resource "google_cloud_run_service" "cloudrun-tf" {
   name     = "example"
   location = var.region
   project  = var.project_id
 
   template {
     spec {
-      service_account_name = google_service_account.example.email
       containers {
         image = "gcr.io/cloudrun/hello"
         # image = "${var.registry}/${var.project}/${var.image_name}:${var.image_version}"
@@ -67,24 +33,23 @@ resource "google_cloud_run_service" "default" {
           }
         }
       }
+      service_account_name = google_service_account.example.email
     }
     metadata {
-            annotations = {
-                    "autoscaling.knative.dev/minScale" = "2",
-                    "autoscaling.knative.dev/maxScale" = "5"
-                }
-            }
+      annotations = {
+        "autoscaling.knative.dev/minScale" = "2",
+        "autoscaling.knative.dev/maxScale" = "5"
+      }
+    }
   }
-  
+
   traffic {
-            percent = 100
-            latest_revision = true
-        }
+    percent         = 100
+    latest_revision = true
+  }
 
   metadata {
     annotations = {
-      # For valid annotation values and descriptions, see
-      # https://cloud.google.com/sdk/gcloud/reference/run/deploy#--ingress
       "run.googleapis.com/ingress" = "all"
     }
   }
@@ -93,6 +58,18 @@ resource "google_cloud_run_service" "default" {
 }
 
 
-# [END cloudloadbalancing_ext_http_cloudrun]
+
+
+
+
+
+
+
+/* module "td-mod-cloud-run" {
+  source = "../tf-modules/services/tf-mod-cloud-run"
+  project_id = var.project_id
+  service_account_email = var.service_account_email
+  region = var.region
+} */
 
 
