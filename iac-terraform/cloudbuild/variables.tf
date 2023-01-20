@@ -5,7 +5,7 @@ variable "project_id" {
 }
 
 variable "repo_name" {
-  type    = string
+  type = string
   #default = "https://github.com/Sonova-Marketing/geolocation.git"
   default = "https://github.com/nishantabanik/cloud-build-samples.git"
 }
@@ -24,5 +24,6 @@ variable "service_account_email" {
 variable "environment" {
   description = "Our application deployment environment"
   type        = string
-  default     = basename(abspath(path.module))
+  default     = "$(path.module)"
+  #default = "$(dirname(path.module))" #"${path.module}"
 }
