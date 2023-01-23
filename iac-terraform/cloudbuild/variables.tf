@@ -6,19 +6,22 @@ variable "project_id" {
 
 variable "repo_name" {
   type = string
-  #default = "https://github.com/Sonova-Marketing/geolocation.git"
-  default = "https://github.com/nishantabanik/cloud-build-samples.git"
+  default = "dev-deploy-de-hoergeraete-bild"
 }
 
+variable "repo_url"
+type = string
+default = "https://github.com/Sonova-Marketing/web-mono.git"
+
 variable "region" {
-  description = "Location for load balancer and Cloud Run resources"
+  description = "Location for BILD Cloudbuild development resources"
   default     = "europe-west1"
 }
 
 variable "service_account_email" {
-  description = "Service account email to run containers under"
+  description = "Service account email to run build trigger"
   type        = string
-  default     = "abcmnop001"
+  default     = "dev-build-trigger-sa"
 }
 
 variable "environment" {
