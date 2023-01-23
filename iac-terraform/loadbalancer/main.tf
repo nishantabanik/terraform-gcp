@@ -1,50 +1,28 @@
-
 provider "google" {
-  project = var.project_id
+  project     = var.project_id
+  credentials = "../../../../../tf-key.json"
 }
 
-provider "google-beta" {
-  project = var.project_id
-}
 
-# Enable Cloud Run API
+/* # Enable Cloud Run API
 resource "google_project_service" "cloudrun" {
-  provider = google-beta
-  service  = "run.googleapis.com"
+  provider           = google-beta
+  service            = "run.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_project_service" "compute" {
-  provider = google-beta
-  service  = "compute.googleapis.com"
+  provider           = google-beta
+  service            = "compute.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_project_service" "clouddns" {
-  provider = google-beta
-  service  = "dns.googleapis.com"
+  provider           = google-beta
+  service            = "dns.googleapis.com"
   disable_on_destroy = false
-}
+} */
 
-resource "google_project_service" "iam" {
-  service = "iam.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_dns_record_set" "a" {
-  name         = "backend.${google_dns_managed_zone.prod.dns_name}"
-  managed_zone = google_dns_managed_zone.prod.name
-  type         = "A"
-  ttl          = 300
-
-  rrdatas = ["8.8.8.8"]
-}
-
-resource "google_dns_managed_zone" "prod" {
-  name     = "prod-zone"
-  dns_name = "prod.mydomain1234.com."
-  depends_on = [google_project_service.clouddns]
-}
 
 module "lb-http" {
   source  = "GoogleCloudPlatform/lb-http/google//modules/serverless_negs"
@@ -56,13 +34,14 @@ module "lb-http" {
   managed_ssl_certificate_domains = [var.domain]
   https_redirect                  = var.ssl
   labels                          = { "example-label" = "cloud-run-example" }
+  #ip_address                      = ["10.10.10.10"] #var.ip_address
 
   backends = {
     default = {
       description = null
       groups = [
         {
-          group = google_compute_region_network_endpoint_group.serverless_neg.id
+          group = google_compute_region_network_endpoint_group.serverless_neg.self_link
         }
       ]
       enable_cdn              = true
@@ -85,49 +64,39 @@ module "lb-http" {
 
 resource "google_compute_region_network_endpoint_group" "serverless_neg" {
   provider              = google-beta
-  name                  = "serverless-neg"
-  network_endpoint_type = "SERVERLESS"
+  project               = var.project_id
   region                = var.region
+  name                  = var.serverless_neg_name
+  network_endpoint_type = "SERVERLESS"
   cloud_run {
-    service = google_cloud_run_service.default.name
+    service = google_cloud_run_service.cloudrun-tf.name
   }
+}
+
+resource  "google_compute_forwarding_rule" "my_forwarding_rule" {
+  name    = var.lb_name
+  region  = var.region
+  target  = google_cloud_run_service.cloudrun-tf.status[0].url
+  ports = ["80, 443"]
+  ip_address  = var.ip_address
 }
 
 ####################################################################
 # deploy Cloud Run Service with Service Account
 ####################################################################
 
-resource "google_service_account" "example" {
-  account_id   = var.service_account_email
-  display_name = "Example Service Account"
-}
-
-resource "google_service_account_iam_binding" "binding" {
-  service_account_id = google_service_account.example.name
-  role = "roles/editor"
-  #role = "roles/iam.serviceAccountAdmin"
-  members = [
-    "serviceAccount:${google_service_account.example.email}"
-    ]
-  depends_on = [google_service_account.example]
-}
-
-resource "google_cloud_run_service_iam_member" "access-cloudrun" {
-  location = google_cloud_run_service.default.location
-  project  = google_cloud_run_service.default.project
-  service  = google_cloud_run_service.default.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
+/* module "td-mod-cloud-run" {
+  source = "../tf-modules/services/tf-mod-cloud-run"
+  project_id = var.project_id
+  service_account_email = var.service_account_email
+  region = var.region
+} */
 
 
-resource "google_cloud_run_service" "default" {
-  name     = "example"
+resource "google_cloud_run_service" "cloudrun-tf" {
+  name     = var.cloud_run_name
   location = var.region
   project  = var.project_id
-  /* google_service_account {
-    service = google_service_account.example.account_id
-  } */
 
   template {
     spec {
@@ -143,19 +112,17 @@ resource "google_cloud_run_service" "default" {
       }
     }
     metadata {
-            annotations = {
-                    "autoscaling.knative.dev/minScale" = "2",
-                    "autoscaling.knative.dev/maxScale" = "5"
-                }
-            }
+      annotations = {
+        "autoscaling.knative.dev/minScale" = "2",
+        "autoscaling.knative.dev/maxScale" = "5"
+      }
+    }
   }
   metadata {
     annotations = {
-      # For valid annotation values and descriptions, see
-      # https://cloud.google.com/sdk/gcloud/reference/run/deploy#--ingress
-      "run.googleapis.com/ingress" = "all"
+      "run.googleapis.com/ingress" = "internal-and-cloud-load-balancing"
     }
   }
   # Waits for the Cloud Run API to be enabled
-  depends_on = [google_project_service.cloudrun]
+  depends_on = [google_project_service.gcp_services]
 }
